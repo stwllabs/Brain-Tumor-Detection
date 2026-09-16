@@ -1,0 +1,9 @@
+tensorflow>=2.15.0
+kagglehub>=0.2.0
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+Pillow
+streamlit
