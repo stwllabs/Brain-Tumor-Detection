@@ -16,7 +16,9 @@ import tensorflow as tf
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
+# Lower batch size for CPU-only Windows runs; the transfer model fine-tuning
+# was hitting oneDNN memory-allocation errors with the default 32-image batches.
+BATCH_SIZE = 16
 SEED = 42
 
 
