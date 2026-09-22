@@ -1,0 +1,4 @@
+model_name,n_params,epochs_trained,train_time_sec,test_accuracy,test_loss
+transfer_efficientnet,4054695,20,102.8,0.9331,0.5154
+baseline_cnn,110276,20,62.0,0.7519,0.797
+baseline_augmented,110276,20,288.6,0.7175,0.9518
