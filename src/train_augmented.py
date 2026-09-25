@@ -3,6 +3,10 @@ Eksperimen 2: Baseline CNN (arsitektur sama persis dengan train_baseline.py)
 tapi DENGAN data augmentation. Dibandingkan head-to-head ke baseline untuk
 lihat pengaruh augmentation terhadap overfitting & generalisasi ke test set.
 
+CATATAN (setelah run pertama): di 20 epoch training curve belum plateau
+(val loss masih turun terus) -> dinaikkan ke 40 epoch, biar EarlyStopping
+yang menentukan kapan berhenti, bukan batas keras epoch.
+
 Jalankan: python src/train_augmented.py
 """
 
@@ -20,7 +24,7 @@ from train_baseline import build_baseline_model, plot_curves  # reuse arsitektur
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "report")
 FIG_DIR = os.path.join(REPORT_DIR, "figures")
-EPOCHS = 20
+EPOCHS = 40  # dinaikkan dari 20 -- run pertama belum konvergen di 20
 
 
 def main():
@@ -38,13 +42,15 @@ def main():
     n_params = model.count_params()
 
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True),
+        # patience dinaikkan sedikit (7) -- augmentation bikin val_loss lebih noisy antar-epoch
+        tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=7, restore_best_weights=True),
     ]
 
     start = time.time()
     history = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=callbacks)
     train_time = time.time() - start
     print(f"\nTraining time: {train_time:.1f}s ({train_time/60:.1f} min)")
+    print(f"Epoch training berhenti di: {len(history.history['loss'])} (dari max {EPOCHS})")
 
     model_path = os.path.join(MODEL_DIR, "baseline_augmented.keras")
     model.save(model_path)
