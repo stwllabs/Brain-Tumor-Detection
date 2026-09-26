@@ -1,8 +1,8 @@
 {
   "model_name": "baseline_augmented",
   "n_params": 110276,
-  "train_time_sec": 288.6,
-  "epochs_trained": 20,
-  "test_accuracy": 0.7175,
-  "test_loss": 0.9518
+  "train_time_sec": 738.0,
+  "epochs_trained": 40,
+  "test_accuracy": 0.7613,
+  "test_loss": 0.9592
 }
