@@ -23,7 +23,7 @@ from preprocess import load_datasets
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "report")
 FIG_DIR = os.path.join(REPORT_DIR, "figures")
-EPOCHS = 20
+EPOCHS = 40  # dinaikkan dari 20, disamakan dengan train_augmented.py
 NUM_CLASSES = 4
 
 
@@ -90,7 +90,7 @@ def main():
 
     callbacks = [
         tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss", patience=5, restore_best_weights=True
+            monitor="val_loss", patience=7, restore_best_weights=True
         ),
     ]
 
@@ -103,6 +103,7 @@ def main():
     )
     train_time = time.time() - start
     print(f"\nTraining time: {train_time:.1f}s ({train_time/60:.1f} min)")
+    print(f"Epoch training berhenti di: {len(history.history['loss'])} (dari max {EPOCHS})")
 
     # Simpan model
     model_path = os.path.join(MODEL_DIR, "baseline_cnn.keras")
