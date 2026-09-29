@@ -1,8 +1,8 @@
 {
   "model_name": "baseline_cnn",
   "n_params": 110276,
-  "train_time_sec": 62.0,
-  "epochs_trained": 20,
-  "test_accuracy": 0.7519,
-  "test_loss": 0.797
+  "train_time_sec": 165.6,
+  "epochs_trained": 40,
+  "test_accuracy": 0.8325,
+  "test_loss": 0.9343
 }
