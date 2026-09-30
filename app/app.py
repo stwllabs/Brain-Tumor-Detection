@@ -1,15 +1,15 @@
-"""
-Streamlit app: upload MRI otak -> prediksi kelas tumor.
+"""Streamlit app for brain MRI image classification.
 
-Jalankan dari root folder project:
+Run from the project root with:
     streamlit run app/app.py
 
-Catatan preprocessing: SEMUA model di project ini dilatih dengan input berskala 0-1
-(lihat src/preprocess.py). Model transfer learning sudah punya layer Rescaling(255)
-+ preprocess EfficientNet DI DALAM model, jadi app cukup memberi input 0-1 untuk semua model.
+All models in this project were trained with inputs scaled to 0-1 (see
+src/preprocess.py). The transfer-learning model includes its own Rescaling(255)
+and EfficientNet preprocessing layers, so the app supplies 0-1 inputs to every model.
 """
 
 import glob
+import json
 import os
 import time
 
@@ -19,7 +19,8 @@ import tensorflow as tf
 from PIL import Image
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
-CLASS_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]  # urutan sesuai preprocess.py
+CLASS_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]  # Order matches preprocess.py.
+DISPLAY_NAMES = {"glioma": "Glioma", "meningioma": "Meningioma", "notumor": "No tumor", "pituitary": "Pituitary"}
 IMG_SIZE = (224, 224)
 
 st.set_page_config(page_title="NeuroScan | MRI Classifier", page_icon="🧠", layout="wide")
@@ -27,12 +28,18 @@ st.set_page_config(page_title="NeuroScan | MRI Classifier", page_icon="🧠", la
 
 @st.cache_resource
 def load_model(model_path):
+    if os.path.isdir(model_path):
+        with open(os.path.join(model_path, "config.json"), encoding="utf-8") as config_file:
+            model_config = json.load(config_file)
+        model = tf.keras.models.model_from_json(json.dumps(model_config))
+        model.load_weights(os.path.join(model_path, "model.weights.h5"))
+        return model
     return tf.keras.models.load_model(model_path)
 
 
 def preprocess_image(img: Image.Image):
     img = img.convert("RGB").resize(IMG_SIZE)
-    arr = np.array(img).astype("float32") / 255.0  # skala 0-1, sama seperti saat training
+    arr = np.array(img).astype("float32") / 255.0  # Scale to 0-1, matching training.
     return np.expand_dims(arr, axis=0)
 
 
@@ -81,10 +88,10 @@ def main():
         }
         </style>
         <header class="hero">
-            <div class="eyebrow">COMP6826001 · Prototipe klasifikasi MRI</div>
+            <div class="eyebrow">MRI CLASSIFICATION PROTOTYPE</div>
             <div class="hero-title">NeuroScan</div>
-            <p class="hero-copy">Eksplorasi klasifikasi citra MRI otak dengan model deep learning.</p>
-            <div class="disclaimer"><strong>Catatan penting:</strong> Ini prototipe akademik, bukan alat diagnosis medis. Jangan gunakan hasilnya untuk keputusan klinis.</div>
+            <p class="hero-copy">Explore brain MRI image classification with deep learning models.</p>
+            <div class="disclaimer"><strong>Important:</strong> This is an academic prototype, not a medical diagnostic tool. Do not use its results to make clinical decisions.</div>
         </header>
         """,
         unsafe_allow_html=True,
@@ -92,40 +99,40 @@ def main():
 
     model_files = glob.glob(os.path.join(MODEL_DIR, "*.keras"))
     if not model_files:
-        st.error("Belum ada model di folder `models/`. Training dulu (misal `python src/train_baseline.py`).")
+        st.error("No models were found in the `models/` folder. Train a model first, for example with `python src/train_baseline.py`.")
         return
 
     model_options = {os.path.basename(f): f for f in model_files}
     with st.sidebar:
-        st.markdown("## Pengaturan")
-        st.caption("Pilih model untuk menjalankan inferensi.")
+        st.markdown("## Settings")
+        st.caption("Choose a model for inference.")
         selected_name = st.selectbox("Model", list(model_options.keys()))
         st.divider()
-        st.caption("4 kelas · Input 224 × 224 px")
+        st.caption("4 classes · 224 × 224 px input")
     model_path = model_options[selected_name]
 
     upload_col, result_col = st.columns([1, 1.08], gap="large")
     with upload_col:
-        st.markdown('<div class="section-kicker">01 / Gambar MRI</div>', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Unggah gambar MRI otak", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+        st.markdown('<div class="section-kicker">01 / MRI IMAGE</div>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Upload a brain MRI image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
         if uploaded_file is not None:
             img = Image.open(uploaded_file)
             st.image(img, caption=uploaded_file.name, use_container_width=True)
         else:
             st.markdown(
-                '<div class="empty-state"><div class="empty-icon">◉</div><div class="empty-title">Siap menerima gambar</div><div class="empty-copy">Pilih file JPG atau PNG untuk memulai analisis.</div></div>',
+                '<div class="empty-state"><div class="empty-icon">◉</div><div class="empty-title">Ready for an image</div><div class="empty-copy">Choose a JPG or PNG file to begin analysis.</div></div>',
                 unsafe_allow_html=True,
             )
 
     with result_col:
-        st.markdown('<div class="section-kicker">02 / Hasil analisis</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-kicker">02 / ANALYSIS</div>', unsafe_allow_html=True)
         if uploaded_file is None:
             st.markdown(
-                '<div class="empty-state"><div class="empty-icon">⌁</div><div class="empty-title">Hasil akan tampil di sini</div><div class="empty-copy">Unggah citra MRI untuk melihat prediksi dan distribusi probabilitas.</div></div>',
+                '<div class="empty-state"><div class="empty-icon">⌁</div><div class="empty-title">Results will appear here</div><div class="empty-copy">Upload an MRI image to view the prediction and probability distribution.</div></div>',
                 unsafe_allow_html=True,
             )
         else:
-            with st.spinner("Menganalisis citra..."):
+            with st.spinner("Analyzing image..."):
                 model = load_model(model_path)
                 x = preprocess_image(img)
                 t0 = time.time()
@@ -135,19 +142,19 @@ def main():
             pred_idx = int(np.argmax(preds))
             pred_class = CLASS_NAMES[pred_idx]
             confidence = float(preds[pred_idx])
-            st.markdown(f'<div class="result-meta">KELAS TERPREDIKSI</div><div class="result-name">{pred_class}</div><div class="confidence">{confidence:.1%}</div><div class="result-meta">Keyakinan model · Inferensi {latency_ms:.0f} ms</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-meta">PREDICTED CLASS</div><div class="result-name">{DISPLAY_NAMES[pred_class]}</div><div class="confidence">{confidence:.1%}</div><div class="result-meta">Model confidence · Inference {latency_ms:.0f} ms</div>', unsafe_allow_html=True)
             st.divider()
-            st.markdown("**Distribusi probabilitas**")
+            st.markdown("**Probability distribution**")
             for cls, prob in sorted(zip(CLASS_NAMES, preds), key=lambda x: -x[1]):
                 label_col, value_col = st.columns([3, 1])
-                label_col.markdown(f"`{cls}`")
+                label_col.markdown(f"`{DISPLAY_NAMES[cls]}`")
                 value_col.markdown(f"**{float(prob):.1%}**")
                 st.progress(float(prob))
 
             if confidence < 0.6:
-                st.warning("Keyakinan model rendah. Hasil perlu ditinjau secara manual dan tidak boleh dijadikan kesimpulan.")
+                st.warning("Model confidence is low. Review this result manually; it should not be treated as a conclusion.")
             elif pred_class == "notumor":
-                st.info("Prediksi 'notumor' tidak menjamin pasien bebas tumor. Konfirmasi hasil dengan tenaga medis.")
+                st.info("A 'No tumor' prediction does not guarantee that a patient is tumor-free. Confirm findings with a medical professional.")
 
 
 if __name__ == "__main__":
